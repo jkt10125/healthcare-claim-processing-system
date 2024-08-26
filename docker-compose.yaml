@@ -1,0 +1,129 @@
+version: '2'
+
+services:
+  orderer.example.com:
+    container_name: orderer.example.com
+    image: hyperledger/fabric-orderer:latest
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=info
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+      - ./organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/var/hyperledger/orderer/msp
+      - ./organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls:/var/hyperledger/orderer/tls
+      - orderer.example.com:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+    networks:
+      - fabric_network
+
+  peer0.healthcare.example.com:
+    container_name: peer0.healthcare.example.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_PEER_ID=peer0.healthcare.example.com
+      - CORE_PEER_LOCALMSPID=HealthcareMSP
+      - CORE_PEER_ADDRESS=peer0.healthcare.example.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.healthcare.example.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer0.healthcare.example.com:7052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.healthcare.example.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.healthcare.example.com:7051
+      - CORE_PEER_MSPCONFIGPATH=/var/hyperledger/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/var/hyperledger/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/var/hyperledger/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/var/hyperledger/tls/ca.crt
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - ./crypto-config/peerOrganizations/healthcare.example.com/peers/peer0.healthcare.example.com/msp:/var/hyperledger/msp
+      # - ./organizations/peerOrganizations/healthcare.example.com/peers/peer0.healthcare.example.com/msp:/var/hyperledger/msp
+      - ./crypto-config/peerOrganizations/healthcare.example.com/peers/peer0.healthcare.example.com/tls:/var/hyperledger/tls
+      # - ./organizations/peerOrganizations/healthcare.example.com/peers/peer0.healthcare.example.com/tls:/var/hyperledger/tls
+      # - peer0.healthcare.example.com:/var/hyperledger/production
+    ports:
+      - 7051:7051
+    networks:
+      - fabric_network
+
+  peer0.tpa.example.com:
+    container_name: peer0.tpa.example.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_PEER_ID=peer0.tpa.example.com
+      - CORE_PEER_LOCALMSPID=TPAMSP
+      - CORE_PEER_ADDRESS=peer0.tpa.example.com:8051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.tpa.example.com:8052
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer0.tpa.example.com:8052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.tpa.example.com:8051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.tpa.example.com:8051
+      - CORE_PEER_MSPCONFIGPATH=/var/hyperledger/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/var/hyperledger/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/var/hyperledger/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/var/hyperledger/tls/ca.crt
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - ./crypto-config/peerOrganizations/tpa.example.com/peers/peer0.tpa.example.com/msp:/var/hyperledger/msp
+      # - ./organizations/peerOrganizations/tpa.example.com/peers/peer0.tpa.example.com/msp:/var/hyperledger/msp
+      - ./crypto-config/peerOrganizations/tpa.example.com/peers/peer0.tpa.example.com/tls:/var/hyperledger/tls
+      # - ./organizations/peerOrganizations/tpa.example.com/peers/peer0.tpa.example.com/tls:/var/hyperledger/tls
+      # - peer0.tpa.example.com:/var/hyperledger/production
+    ports:
+      - 8051:8051
+    networks:
+      - fabric_network
+
+  peer0.insurance.example.com:
+    container_name: peer0.insurance.example.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_PEER_ID=peer0.insurance.example.com
+      - CORE_PEER_LOCALMSPID=InsuranceMSP
+      - CORE_PEER_ADDRESS=peer0.insurance.example.com:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.insurance.example.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer0.insurance.example.com:9052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.insurance.example.com:9051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.insurance.example.com:9051
+      - CORE_PEER_MSPCONFIGPATH=/var/hyperledger/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/var/hyperledger/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/var/hyperledger/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/var/hyperledger/tls/ca.crt
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - ./crypto-config/peerOrganizations/insurance.example.com/peers/peer0.insurance.example.com/msp:/var/hyperledger/msp
+      # - ./organizations/peerOrganizations/insurance.example.com/peers/peer0.insurance.example.com/msp:/var/hyperledger/msp
+      - ./crypto-config/peerOrganizations/insurance.example.com/peers/peer0.insurance.example.com/tls:/var/hyperledger/tls
+      # - ./organizations/peerOrganizations/insurance.example.com/peers/peer0.insurance.example.com/tls:/var/hyperledger/tls
+      # - peer0.insurance.example.com:/var/hyperledger/production
+    ports:
+      - 9051:9051
+    networks:
+      - fabric_network
+
+volumes:
+  orderer.example.com:
+    driver: local
+  peer0.healthcare.example.com:
+    driver: local
+  peer0.tpa.example.com:
+    driver: local
+  peer0.insurance.example.com:
+    driver: local
+
+networks:
+  fabric_network:
+    external: true

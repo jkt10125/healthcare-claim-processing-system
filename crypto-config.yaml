@@ -1,0 +1,27 @@
+OrdererOrgs:
+  - Name: OrdererOrg
+    Domain: example.com
+    Specs:
+      - Hostname: orderer
+
+PeerOrgs:
+  - Name: HealthcareOrg
+    Domain: healthcare.example.com
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: TPAOrg
+    Domain: tpa.example.com
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: InsuranceOrg
+    Domain: insurance.example.com
+    Template:
+      Count: 1
+    Users:
+      Count: 1

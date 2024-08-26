@@ -1,0 +1,232 @@
+################################################################################
+#
+#   Section: Organizations
+#
+#   - This section defines the different organizations in your network.
+#
+################################################################################
+
+Organizations:
+
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: crypto-config/ordererOrganizations/example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    # Note: No AnchorPeers for OrdererOrg
+
+  - &HealthcareOrg
+    Name: HealthcareOrg
+    ID: HealthcareMSP
+    MSPDir: crypto-config/peerOrganizations/healthcare.example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('HealthcareMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('HealthcareMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('HealthcareMSP.admin')"
+    AnchorPeers:
+      - Host: peer0.healthcare.example.com
+        Port: 7051
+
+  - &TPAOrg
+    Name: TPAOrg
+    ID: TPAMSP
+    MSPDir: crypto-config/peerOrganizations/tpa.example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('TPAMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('TPAMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('TPAMSP.admin')"
+    AnchorPeers:
+      - Host: peer0.tpa.example.com
+        Port: 8051
+
+  - &InsuranceOrg
+    Name: InsuranceOrg
+    ID: InsuranceMSP
+    MSPDir: crypto-config/peerOrganizations/insurance.example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('InsuranceMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('InsuranceMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('InsuranceMSP.admin')"
+    AnchorPeers:
+      - Host: peer0.insurance.example.com
+        Port: 9051
+
+################################################################################
+#
+#   Section: Capabilities
+#
+#   - This section defines the capabilities of the channel, application, and orderer.
+#
+################################################################################
+
+Capabilities:
+
+  Channel: &ChannelCapabilities
+    V2_0: true
+
+  Orderer: &OrdererCapabilities
+    V2_0: true
+
+  Application: &ApplicationCapabilities
+    V2_0: true
+
+################################################################################
+#
+#   Section: Application Defaults
+#
+#   - Defines default policies and settings for applications.
+#
+################################################################################
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    LifecycleEndorsement:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.peer', 'TPAMSP.peer', 'InsuranceMSP.peer')"
+    Endorsement:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.peer', 'TPAMSP.peer', 'InsuranceMSP.peer')"
+    Readers:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.member', 'TPAMSP.member', 'InsuranceMSP.member')"
+    Writers:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.member', 'TPAMSP.member', 'InsuranceMSP.member')"
+    Admins:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.admin', 'TPAMSP.admin', 'InsuranceMSP.admin')"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+################################################################################
+#
+#   Section: Orderer Defaults
+#
+#   - Defines settings and policies for the ordering service.
+#
+################################################################################
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  EtcdRaft:
+    Consenters:
+      - Host: orderer.example.com
+        Port: 7050
+        ClientTLSCert: crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.crt
+        ServerTLSCert: crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.crt
+  Addresses:
+    - orderer.example.com:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Policies:
+    Readers:
+      Type: Signature
+      Rule: "OR('OrdererMSP.member')"
+    Writers:
+      Type: Signature
+      Rule: "OR('OrdererMSP.member')"
+    Admins:
+      Type: Signature
+      Rule: "OR('OrdererMSP.admin')"
+    BlockValidation:
+      Type: Signature
+      Rule: "OR('OrdererMSP.member')"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+################################################################################
+#
+#   Section: Channel Defaults
+#
+#   - Defines default policies for channels.
+#
+################################################################################
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.member', 'TPAMSP.member', 'InsuranceMSP.member')"
+    Writers:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.member', 'TPAMSP.member', 'InsuranceMSP.member')"
+    Admins:
+      Type: Signature
+      Rule: "OR('HealthcareMSP.admin', 'TPAMSP.admin', 'InsuranceMSP.admin')"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+################################################################################
+#
+#   Section: Profiles
+#
+#   - Defines different configurations (profiles) for genesis block and channels.
+#
+################################################################################
+
+Profiles:
+
+  ThreeOrgsOrdererGenesis:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererOrg
+    Consortiums:
+      MyConsortium:
+        Organizations:
+          - *HealthcareOrg
+          - *TPAOrg
+          - *InsuranceOrg
+
+  ThreeOrgsChannel:
+    Consortium: MyConsortium
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('HealthcareMSP.member', 'TPAMSP.member', 'InsuranceMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('HealthcareMSP.member', 'TPAMSP.member', 'InsuranceMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('HealthcareMSP.admin', 'TPAMSP.admin', 'InsuranceMSP.admin')"
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *HealthcareOrg
+        - *TPAOrg
+        - *InsuranceOrg
+    Capabilities:
+      <<: *ApplicationCapabilities
