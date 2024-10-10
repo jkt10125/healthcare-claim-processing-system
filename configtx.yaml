@@ -42,8 +42,8 @@ Organizations:
       - Host: peer0.healthcare.example.com
         Port: 7051
 
-  - &TPAOrg
-    Name: TPAOrg
+  - &TpaOrg
+    Name: TpaOrg
     ID: TPAMSP
     MSPDir: crypto-config/peerOrganizations/tpa.example.com/msp
     Policies:
@@ -207,7 +207,7 @@ Profiles:
       MyConsortium:
         Organizations:
           - *HealthcareOrg
-          - *TPAOrg
+          - *TpaOrg
           - *InsuranceOrg
 
   ThreeOrgsChannel:
@@ -226,7 +226,7 @@ Profiles:
       <<: *ApplicationDefaults
       Organizations:
         - *HealthcareOrg
-        - *TPAOrg
+        - *TpaOrg
         - *InsuranceOrg
     Capabilities:
       <<: *ApplicationCapabilities
