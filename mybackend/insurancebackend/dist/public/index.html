@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Insurance Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input, button { padding: 8px; margin: 5px; }
+        #result { white-space: pre-wrap; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Insurance Search</h1>
+    <input type="text" id="insuranceId" placeholder="Enter Insurance ID">
+    <button onclick="searchInsurance()">Search</button>
+    <div id="result"></div>
+
+    <script>
+        function searchInsurance() {
+            const insuranceId = document.getElementById('insuranceId').value;
+            if (!insuranceId) {
+                alert('Please enter a Insurance ID');
+                return;
+            }
+            
+            fetch(`/insurances/${insuranceId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Insurance details not found');
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('result').innerHTML = 
+                        JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = 
+                        `Error: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Claim Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input, button { padding: 8px; margin: 5px; }
+        #result { white-space: pre-wrap; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Claim Search</h1>
+    <input type="text" id="claimId" placeholder="Enter Claim ID">
+    <button onclick="searchClaim()">Search</button>
+    <div id="result"></div>
+
+    <script>
+        function searchClaim() {
+            const claimId = document.getElementById('claimId').value;
+            if (!claimId) {
+                alert('Please enter a Claim ID');
+                return;
+            }
+            
+            fetch(`/claims/${claimId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Claim details not found');
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('result').innerHTML = 
+                        JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = 
+                        `Error: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

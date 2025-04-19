@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Treatment Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input, button { padding: 8px; margin: 5px; }
+        #result { white-space: pre-wrap; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Treatment Search</h1>
+    <input type="text" id="treatmentId" placeholder="Enter Treatment ID">
+    <button onclick="searchTreatment()">Search</button>
+    <div id="result"></div>
+
+    <script>
+        function searchTreatment() {
+            const treatmentId = document.getElementById('treatmentId').value;
+            if (!treatmentId) {
+                alert('Please enter a Treatment ID');
+                return;
+            }
+            
+            fetch(`/treatments/${treatmentId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Treatment details not found');
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('result').innerHTML = 
+                        JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = 
+                        `Error: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

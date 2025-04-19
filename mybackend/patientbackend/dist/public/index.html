@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patient Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input, button { padding: 8px; margin: 5px; }
+        #result { white-space: pre-wrap; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Patient Search</h1>
+    <input type="text" id="patientId" placeholder="Enter Patient ID">
+    <button onclick="searchPatient()">Search</button>
+    <div id="result"></div>
+
+    <script>
+        function searchPatient() {
+            const patientId = document.getElementById('patientId').value;
+            if (!patientId) {
+                alert('Please enter a Patient ID');
+                return;
+            }
+            
+            fetch(`/patients/${patientId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Patient not found');
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('result').innerHTML = 
+                        JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = 
+                        `Error: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

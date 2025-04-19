@@ -1,0 +1,32 @@
+{
+  "name": "treatmentbackend",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "start": "ts-node src/app.ts",
+    "start:prod": "node dist/app.js",
+    "lint": "eslint src",
+    "prepare": "npm run build",
+    "pretest": "npm run lint"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.0",
+    "@hyperledger/fabric-gateway": "^1.7.1",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fs-extra": "^11.2.0",
+    "util": "^0.12.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/google-protobuf": "^3.15.12",
+    "@types/node": "^22.13.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "patientbackend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "lint": "eslint src",
+    "prepare": "npm run build",
+    "pretest": "npm run lint",
+    "start": "node dist/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.2",
+    "@hyperledger/fabric-gateway": "^1.7.1",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fabric-network": "^2.2.20"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/google-protobuf": "^3.15.12",
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.2"
+  }
+}

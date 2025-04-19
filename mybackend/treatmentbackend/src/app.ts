@@ -1,0 +1,218 @@
+/*
+ * Copyright IBM Corp. All Rights Reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import * as grpc from '@grpc/grpc-js';
+import { connect, Contract, hash, Identity, Signer, signers } from '@hyperledger/fabric-gateway';
+import * as crypto from 'crypto';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import { TextDecoder } from 'util';
+import express, { Request, Response } from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+
+const channelName = envOrDefault('CHANNEL_NAME', 'mychannel');
+const chaincodeName = envOrDefault('CHAINCODE_NAME', 'treatmentcc'); // Updated chaincode name
+const mspId = envOrDefault('MSP_ID', 'Org1MSP');
+const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'organizations', 'peerOrganizations', 'org1.example.com'));
+const keyDirectoryPath = envOrDefault('KEY_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@org1.example.com', 'msp', 'keystore'));
+const certDirectoryPath = envOrDefault('CERT_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@org1.example.com', 'msp', 'signcerts'));
+const tlsCertPath = envOrDefault('TLS_CERT_PATH', path.resolve(cryptoPath, 'peers', 'peer0.org1.example.com', 'tls', 'ca.crt'));
+const peerEndpoint = envOrDefault('PEER_ENDPOINT', 'localhost:7051');
+const peerHostAlias = envOrDefault('PEER_HOST_ALIAS', 'peer0.org1.example.com');
+
+const utf8Decoder = new TextDecoder();
+const app = express();
+const port = 3001; // Different port from patient backend
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Same gateway connection setup as original
+async function getGatewayClient() {
+    const client = await newGrpcConnection();
+    return connect({
+        client,
+        identity: await newIdentity(),
+        signer: await newSigner(),
+        hash: hash.sha256,
+        evaluateOptions: () => ({ deadline: Date.now() + 5000 }),
+        endorseOptions: () => ({ deadline: Date.now() + 15000 }),
+        submitOptions: () => ({ deadline: Date.now() + 5000 }),
+        commitStatusOptions: () => ({ deadline: Date.now() + 60000 }),
+    });
+}
+
+// Existing connection helpers (identical to patient backend)
+async function newGrpcConnection(): Promise<grpc.Client> {
+    const tlsRootCert = await fs.readFile(tlsCertPath);
+    const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
+    return new grpc.Client(peerEndpoint, tlsCredentials, {
+        'grpc.ssl_target_name_override': peerHostAlias,
+    });
+}
+
+async function newIdentity(): Promise<Identity> {
+    const certPath = await getFirstDirFileName(certDirectoryPath);
+    const credentials = await fs.readFile(certPath);
+    return { mspId, credentials };
+}
+
+async function getFirstDirFileName(dirPath: string): Promise<string> {
+    const files = await fs.readdir(dirPath);
+    return path.join(dirPath, files[0]);
+}
+
+async function newSigner(): Promise<Signer> {
+    const keyPath = await getFirstDirFileName(keyDirectoryPath);
+    const privateKeyPem = await fs.readFile(keyPath);
+    const privateKey = crypto.createPrivateKey(privateKeyPem);
+    return signers.newPrivateKeySigner(privateKey);
+}
+
+// Treatment-specific functions
+async function createTreatment(contract: Contract, treatmentDetails: any): Promise<void> {
+    await contract.submitTransaction(
+        'CreateTreatment',
+        treatmentDetails.treatmentID,
+        treatmentDetails.medicalCondition,
+        treatmentDetails.hospitalName,
+        treatmentDetails.roomNumber,
+        treatmentDetails.admissionType,
+        treatmentDetails.medication,
+        treatmentDetails.patientID,
+        treatmentDetails.admissionDate,
+        treatmentDetails.releaseDate,
+        treatmentDetails.billingAmount.toString(),
+        treatmentDetails.doctorName
+    );
+}
+
+async function readTreatment(contract: Contract, treatmentID: string): Promise<any> {
+    const resultBytes = await contract.evaluateTransaction('ReadTreatment', treatmentID);
+    return JSON.parse(utf8Decoder.decode(resultBytes));
+}
+
+async function updateTreatment(contract: Contract, treatmentDetails: any): Promise<void> {
+    await contract.submitTransaction(
+        'UpdateTreatment',
+        treatmentDetails.treatmentID,
+        treatmentDetails.medicalCondition,
+        treatmentDetails.hospitalName,
+        treatmentDetails.roomNumber,
+        treatmentDetails.admissionType,
+        treatmentDetails.medication,
+        treatmentDetails.patientID,
+        treatmentDetails.admissionDate,
+        treatmentDetails.releaseDate,
+        treatmentDetails.billingAmount.toString(),
+        treatmentDetails.doctorName
+    );
+}
+
+async function deleteTreatment(contract: Contract, treatmentID: string): Promise<void> {
+    await contract.submitTransaction('DeleteTreatment', treatmentID);
+}
+
+async function getAllTreatments(contract: Contract): Promise<any> {
+    const resultBytes = await contract.evaluateTransaction('GetAllTreatments');
+    return JSON.parse(utf8Decoder.decode(resultBytes));
+}
+
+// Express routes
+app.post('/treatments', async (req: Request, res: Response) => {
+    try {
+        const gateway = await getGatewayClient();
+        const network = gateway.getNetwork(channelName);
+        const contract = network.getContract(chaincodeName);
+        
+        await createTreatment(contract, req.body);
+        res.status(201).send('Treatment record created successfully');
+    } catch (error) {
+        res.status(500).send(`Error creating treatment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+});
+
+app.get('/patients/:id', async (req: Request, res: Response) => {
+    const patientID = req.params.id;
+    
+    try {
+        const gateway = await getGatewayClient();
+        const network = gateway.getNetwork(channelName);
+        
+        // Switch to patient chaincode
+        const patientContract = network.getContract('patientcc');
+        
+        const resultBytes = await patientContract.evaluateTransaction('ReadPatient', patientID);
+        const patient = JSON.parse(utf8Decoder.decode(resultBytes));
+        
+        res.status(200).json(patient);
+    } catch (error) {
+        res.status(500).send(`Error retrieving patient: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+});
+
+
+app.get('/treatments/:id', async (req: Request, res: Response) => {
+    try {
+        const gateway = await getGatewayClient();
+        const network = gateway.getNetwork(channelName);
+        const contract = network.getContract(chaincodeName);
+        
+        const treatment = await readTreatment(contract, req.params.id);
+        res.status(200).json(treatment);
+    } catch (error) {
+        res.status(500).send(`Error fetching treatment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+});
+
+app.put('/treatments/:id', async (req: Request, res: Response) => {
+    try {
+        const gateway = await getGatewayClient();
+        const network = gateway.getNetwork(channelName);
+        const contract = network.getContract(chaincodeName);
+        
+        await updateTreatment(contract, { treatmentID: req.params.id, ...req.body });
+        res.status(200).send('Treatment updated successfully');
+    } catch (error) {
+        res.status(500).send(`Error updating treatment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+});
+
+app.delete('/treatments/:id', async (req: Request, res: Response) => {
+    try {
+        const gateway = await getGatewayClient();
+        const network = gateway.getNetwork(channelName);
+        const contract = network.getContract(chaincodeName);
+        
+        await deleteTreatment(contract, req.params.id);
+        res.status(200).send('Treatment deleted successfully');
+    } catch (error) {
+        res.status(500).send(`Error deleting treatment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+});
+
+app.get('/treatments', async (req: Request, res: Response) => {
+    try {
+        const gateway = await getGatewayClient();
+        const network = gateway.getNetwork(channelName);
+        const contract = network.getContract(chaincodeName);
+        
+        const treatments = await getAllTreatments(contract);
+        res.status(200).json(treatments);
+    } catch (error) {
+        res.status(500).send(`Error fetching treatments: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+});
+
+function envOrDefault(key: string, defaultValue: string): string {
+    return process.env[key] || defaultValue;
+}
+
+app.listen(port, () => {
+    console.log(`Treatment backend running on port ${port}`);
+    console.log(__dirname);
+});
